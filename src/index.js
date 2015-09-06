@@ -6,11 +6,11 @@ function isPromise(val) {
 
 let [RESOLVED_NAME, REJECTED_NAME] = [];
 
-export function resolve(actionName) {
+export function resolveType(actionName) {
   return actionName + RESOLVED_NAME;
 }
 
-export function reject(actionName) {
+export function rejectType(actionName) {
   return actionName + REJECTED_NAME;
 }
 
@@ -44,29 +44,33 @@ export default function promiseMiddleware(resolvedName = '_RESOLVED', rejectedNa
     dispatch(newAction);
 
     // (2) Listen to promise and dispatch payload with new actionName
-    return action.payload.promise.then(
-      (result) => {
+    return new Promise((resolve, reject) => {
+
+      action.payload.promise
+      .then((result) => {
         dispatch({
-          type: resolve(action.type, resolvedName),
+          type: resolveType(action.type, resolvedName),
           payload: {
             // newAction payload without promise, only with original arguments, delete on last step
             ...newAction.payload,
             promise: result
           }
         });
+        resolve(result);
         return result;
-      },
-      (error) => {
+      })
+      .catch((error) => {
         dispatch({
-          type: reject(action.type, rejectedName),
+          type: rejectType(action.type, rejectedName),
           payload: {
             // newAction payload without promise, only with original arguments, delete on last step
             ...newAction.payload,
             promise: error
           }
         });
+        reject(error);
         return error;
-      }
-    );
+      });
+    });
   };
 }
